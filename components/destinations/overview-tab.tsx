@@ -9,6 +9,7 @@ import { advisoryFor } from '@/lib/data/advisories'
 import { evSearchNear } from '@/lib/data/ev-networks'
 import { Fact } from './ui'
 import { WeatherCard, WeatherSkeleton } from './weather-card'
+import { ClimateOutlook } from './climate-outlook'
 
 const CATEGORY_TAG: Record<string, string> = {
   hill_station: 'Hill station', high_point: 'High pass / peak', forest: 'Forest & wildlife', gateway: 'Gateway', coastal: 'Coastal',
@@ -164,6 +165,7 @@ export function OverviewTab({ dest }: { dest: HillStation }) {
         <Suspense fallback={<WeatherSkeleton />}>
           <WeatherCard lat={dest.lat} lng={dest.lng} name={dest.name} />
         </Suspense>
+        <ClimateOutlook slug={dest.slug} />
         <Fact label="Elevation" value={`${dest.elevationM.toLocaleString()} m`} />
         <Fact label="Region" value={dest.region} />
         <Fact label="District" value={`${dest.district}, ${dest.state}`} />

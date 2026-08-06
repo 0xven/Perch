@@ -157,6 +157,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const NAV = [
   { href: '/destinations', label: 'Destinations' },
+  { href: '/trip-finder',  label: 'Trip Finder' },
   { href: '/stays',        label: 'Stays' },
   { href: '/journeys',     label: 'Journeys' },
   { href: '/charging',     label: 'EV Charging' },
@@ -232,6 +233,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-soft)]">Explore</p>
                   <div className="space-y-1.5 text-sm text-[var(--ink-soft)]">
                     <Link href="/destinations" className="block transition-colors hover:text-[var(--ink)]">Destinations</Link>
+                    <Link href="/trip-finder"  className="block transition-colors hover:text-[var(--ink)]">Trip finder</Link>
                     <Link href="/stays"        className="block transition-colors hover:text-[var(--ink)]">Stays</Link>
                     <Link href="/journeys"     className="block transition-colors hover:text-[var(--ink)]">Journey guides</Link>
                     <Link href="/charging"     className="block transition-colors hover:text-[var(--ink)]">EV charging map</Link>

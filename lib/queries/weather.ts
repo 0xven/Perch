@@ -64,10 +64,12 @@ export interface CurrentWeather {
 }
 
 /**
- * Current conditions + 3-day forecast for a coordinate. Returns null on any
- * failure so callers render a graceful fallback instead of crashing. Cached for
- * 30 minutes (weather does not need to be fresher than that, and it keeps us
- * well within Open-Meteo's free limits).
+ * Current conditions + 16-day forecast for a coordinate (Open-Meteo's documented
+ * max forecast_days - real daily forecasts do not exist further out than this
+ * from any provider, free or paid). Returns null on any failure so callers
+ * render a graceful fallback instead of crashing. Cached for 30 minutes
+ * (weather does not need to be fresher than that, and it keeps us well within
+ * Open-Meteo's free limits).
  */
 export async function getWeather(lat: number, lng: number): Promise<Weather | null> {
   try {
@@ -77,7 +79,7 @@ export async function getWeather(lat: number, lng: number): Promise<Weather | nu
     url.searchParams.set('current', 'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day')
     url.searchParams.set('daily', 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max')
     url.searchParams.set('timezone', 'auto')
-    url.searchParams.set('forecast_days', '3')
+    url.searchParams.set('forecast_days', '16')
 
     const res = await fetch(url, { next: { revalidate: 1800 } })
     if (!res.ok) {
@@ -89,13 +91,22 @@ export async function getWeather(lat: number, lng: number): Promise<Weather | nu
     const day = d.daily
     if (!c || !day) return null
 
-    const daily: DailyForecast[] = (day.time as string[]).map((date: string, i: number) => ({
-      date,
-      code: day.weather_code[i],
-      tempMax: Math.round(day.temperature_2m_max[i]),
-      tempMin: Math.round(day.temperature_2m_min[i]),
-      precipChance: day.precipitation_probability_max?.[i] ?? null,
-    }))
+    // Open-Meteo's furthest-out day (day 16) is occasionally returned
+    // incomplete - weather_code/temps missing for that index even though
+    // `time` still lists the date. Drop any day lacking real data rather than
+    // rendering a bogus "0°/0°" cold snap.
+    const daily: DailyForecast[] = (day.time as string[])
+      .map((date: string, i: number) => ({
+        date,
+        code: day.weather_code?.[i],
+        tempMax: day.temperature_2m_max?.[i],
+        tempMin: day.temperature_2m_min?.[i],
+        precipChance: day.precipitation_probability_max?.[i] ?? null,
+      }))
+      .filter((d): d is { date: string; code: number; tempMax: number; tempMin: number; precipChance: number | null } =>
+        d.code != null && d.tempMax != null && d.tempMin != null,
+      )
+      .map((d) => ({ ...d, tempMax: Math.round(d.tempMax), tempMin: Math.round(d.tempMin) }))
 
     return {
       tempC: Math.round(c.temperature_2m),
