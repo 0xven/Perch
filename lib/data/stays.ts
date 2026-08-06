@@ -70,7 +70,26 @@ export function bookingSearchLinks(place: string): BookingLink[] {
   ]
 }
 
-/** A coordinate maps link is reliable even when a stay has no good name. */
-export function stayMapsLink(s: { lat: number; lng: number }): string {
+/**
+ * Search Google Maps for the stay BY NAME, not by dropping a pin at its raw
+ * OSM coordinate.
+ *
+ * OSM's node placement for small rural homestays/guesthouses is
+ * community-mapped and can be meters to a couple of kilometres off from where
+ * Google's own (business-verified) listing actually is - the two are separate
+ * databases. A coordinate-only link faithfully reproduces whatever error OSM
+ * has; a name+area search instead asks Google to resolve its own listing for
+ * that business, which is what a visitor actually wants ("where is this place
+ * on MY map app"), and self-corrects the cases where OSM's point is wrong.
+ * The stay's own coordinate is still included as an area hint (Google Maps'
+ * `query` accepts "name, near lat,lng"-style text), so the search stays
+ * anchored to the right hill station even for a generic name.
+ */
+export function stayMapsLink(s: { lat: number; lng: number; name?: string; area?: string }): string {
+  if (s.name) {
+    const q = `${s.name}, ${s.area ?? ''} (near ${s.lat},${s.lng})`.trim()
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+  }
+  // No name to search by - the coordinate is the only thing we have.
   return `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`
 }
