@@ -13,6 +13,7 @@ import {
   WifiTabStream, WorkSpotsTabStream, JourneysTabStream, StaysCommunityStream, HeroWifiBadge,
 } from '@/components/destinations/community-streams'
 import { TabSkeleton, StaysCommunitySkeleton } from '@/components/destinations/tab-skeletons'
+import { DestinationReports } from '@/components/reports/destination-reports'
 
 export const revalidate = 3600
 
@@ -164,7 +165,13 @@ export default async function DestinationPage({
 
       <div className="mx-auto max-w-6xl px-5 py-8">
         {/* ─── Overview (static - renders immediately) ─── */}
-        {tab === 'overview' && <OverviewTab dest={dest} />}
+        {tab === 'overview' && (
+          <>
+            <OverviewTab dest={dest} />
+            {/* Cached read, so this stays prerendered like the rest of the tab. */}
+            <DestinationReports slug={slug} name={dest.name} />
+          </>
+        )}
 
         {/* ─── WiFi (community - streamed) ─── */}
         {tab === 'wifi' && (

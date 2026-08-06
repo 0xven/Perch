@@ -356,8 +356,52 @@ p { text-wrap: pretty; }
 .bar-wave { transform-origin: bottom; animation: barWave var(--bar-dur, 1.8s) ease-in-out var(--bar-delay, 0s) infinite; }
 .cloud-drift { animation: drift 9s ease-in-out infinite alternate; }
 
+/* ─── Trip reports (/contribute, /reports, /report/[publicId]) ────────────────
+   The report form is long and things appear and disappear in it constantly - a
+   card added, a suggestion list opening, a step swapping out. These keep those
+   changes legible (something arrived, here) rather than making them decorative.
+   Every one is switched off under prefers-reduced-motion at the bottom of this
+   file, and each is short enough that nobody waits on it. */
+@keyframes itemIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes stepIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes assistIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes comboPop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes idPop {
+  0%   { opacity: 0; transform: scale(0.9); letter-spacing: 0.3em; }
+  100% { opacity: 1; transform: scale(1); letter-spacing: 0.08em; }
+}
+
+.item-in   { animation: itemIn 0.32s var(--motion-out) both; }
+.step-in   { animation: stepIn 0.3s var(--motion-out) both; }
+.assist-in { animation: assistIn 0.22s var(--motion-out) both; }
+.combo-pop { animation: comboPop 0.16s var(--motion-out) both; }
+.id-pop    { animation: idPop 0.7s var(--motion-out) both; }
+
+/* Result cards on /reports. `both` plus an inline animation-delay lets the grid
+   stagger without a per-card class. */
+.result-in { animation: itemIn 0.4s var(--motion-out) both; }
+
+/* Progress bars, the writing-quality meter and the upload bar. A transition
+   rather than a keyframe: the width is driven by real state, so it should
+   travel to whatever the next value is, not replay from zero. */
+.meter-fill { transition: width 0.45s var(--motion-out); }
+
 /* ─── Reduced motion ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
+  .item-in, .step-in, .assist-in, .combo-pop, .id-pop, .result-in { animation: none; }
+  .meter-fill { transition: none; }
   html { scroll-behavior: auto; }
   .rise, .fade { animation: none; }
   .fx-aurora { animation: none; }

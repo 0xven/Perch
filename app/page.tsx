@@ -4,13 +4,19 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { AltimeterDial } from '@/components/home/altimeter-dial'
 import { TelemetryTicker } from '@/components/home/telemetry-ticker'
+import { VisitorProvider } from '@/components/home/visitor-context'
+import { HeroBadge } from '@/components/home/hero-badge'
+import { YourBaseline } from '@/components/home/your-baseline'
+import { FromHere, type FromHereDestination } from '@/components/home/from-here'
 import { EV_NETWORKS } from '@/lib/data/ev-networks'
 import { DESTINATIONS, getDestination } from '@/lib/data/destinations'
 import { destinationImage } from '@/lib/data/destination-images'
 import { TRIP_META } from '@/lib/data/kashmir-trip'
+import { ORIGIN_CITIES } from '@/lib/data/places'
 import { STAY_TOTALS } from '@/lib/data/stays-all'
 import { WILDLIFE } from '@/lib/data/wildlife'
 import { getWifiBySlug } from '@/lib/queries/home'
+import { getWeatherBatch } from '@/lib/queries/weather'
 import { getSiteSettings } from '@/lib/queries/site-settings'
 import { heroBadgeDefault, SITE_DEFAULTS } from '@/lib/data/site-defaults'
 
@@ -59,8 +65,12 @@ export default async function HomePage() {
   const destCount = DESTINATIONS.length
   const featuredList = FEATURED_SLUGS.map((s) => getDestination(s)!).filter(Boolean)
 
-  const [wifiBySlug, settings] = await Promise.all([
+  // Live temperatures for the featured set arrive in ONE batched Open-Meteo
+  // request - they are what the "13° cooler than you" deltas are measured
+  // against once a visitor shares where they are.
+  const [wifiBySlug, weatherBySlug, settings] = await Promise.all([
     getWifiBySlug(),
+    getWeatherBatch(featuredList.map((d) => ({ slug: d.slug, lat: d.lat, lng: d.lng }))),
     getSiteSettings(),
   ])
 
@@ -70,10 +80,6 @@ export default async function HomePage() {
       return wifi?.avg_download_mbps != null ? { d, wifi, mbps: wifi.avg_download_mbps } : null
     })
     .filter((x): x is { d: (typeof featuredList)[number]; wifi: NonNullable<typeof wifiBySlug[string]>; mbps: number } => x !== null)
-
-  const wifiBadge = wifiEntries[0]
-    ? { mbps: wifiEntries[0].mbps, place: wifiEntries[0].d.name }
-    : null
 
   const wildlifeLog = WILDLIFE_LOG_SLUGS.map((slug) => {
     const w = WILDLIFE[slug]
@@ -89,6 +95,35 @@ export default async function HomePage() {
     `STAYS ${STAY_TOTALS.total.toLocaleString()}+ mapped`,
   ]
 
+  // Everything the personalised cards need, resolved on the server so the
+  // 97-entry catalogue and the image manifest never travel to the browser.
+  const fromHereDestinations: FromHereDestination[] = featuredList.map((d) => {
+    const wifi = wifiBySlug[d.slug]
+    return {
+      slug: d.slug,
+      name: d.name,
+      state: d.state,
+      elevationM: d.elevationM,
+      lat: d.lat,
+      lng: d.lng,
+      imageUrl: destinationImage(d.slug)?.thumbUrl ?? null,
+      fact:
+        wifi?.avg_download_mbps != null
+          ? `${wifi.avg_download_mbps} Mbps avg`
+          : `Best: ${d.bestSeason.split('(')[0].trim()}`,
+      tempC: weatherBySlug[d.slug]?.tempC ?? null,
+    }
+  })
+
+  // The no-permission path: 145 curated origin cities with fixed coordinates,
+  // so someone who will never grant location still gets the same real numbers.
+  const cityOptions = ORIGIN_CITIES.map((c) => ({
+    name: c.name,
+    state: c.state,
+    lat: c.lat,
+    lng: c.lng,
+  }))
+
   const connectivityBars = Array.from({ length: 14 }, (_, i) => ({
     h: `${28 + ((i * 37) % 48)}px`,
     c: i % 4 === 0 ? '#E0A93B' : '#7FB89C',
@@ -97,6 +132,7 @@ export default async function HomePage() {
   }))
 
   return (
+    <VisitorProvider>
     <div
       className={`${newsreader.variable} ${schibstedGrotesk.variable} ${ibmPlexMono.variable} home-dark`}
     >
@@ -119,10 +155,9 @@ export default async function HomePage() {
 
         <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 px-5 pb-16 pt-[78px] lg:grid-cols-[1.08fr_0.92fr]">
           <div>
-            <p className="rise mono m-0 inline-flex items-center gap-2.5 text-[11px] uppercase tracking-[0.16em] text-[#7FB89C]">
-              <span className="pulse-dot h-[5px] w-[5px] rounded-full bg-[#E0A93B]" />
-              ALT {TRIP_META.maxAltM.toLocaleString()} M · {settings.hero_badge?.trim() || heroBadgeDefault(destCount)}
-            </p>
+            <HeroBadge referenceAltitude={TRIP_META.maxAltM}>
+              {settings.hero_badge?.trim() || heroBadgeDefault(destCount)}
+            </HeroBadge>
             <h1 className="rise disp mt-5 text-[clamp(48px,6.8vw,80px)] text-[#F3EFE6]">
               {settings.hero_title?.trim() || SITE_DEFAULTS.heroTitle}
               <br />
@@ -150,7 +185,10 @@ export default async function HomePage() {
           </div>
 
           <div className="rise delay-3 flex justify-center">
-            <AltimeterDial altitude={TRIP_META.maxAltM} wifiBadge={wifiBadge} />
+            <AltimeterDial
+              referenceAltitude={TRIP_META.maxAltM}
+              referenceLabel={`${TRIP_META.maxAltName} · the Kashmir circuit's high point`}
+            />
           </div>
         </div>
 
@@ -158,6 +196,14 @@ export default async function HomePage() {
       </section>
 
       <div className="mx-auto max-w-6xl px-5 py-[76px] space-y-[88px]">
+        {/* ─── YOUR BASELINE ────────────────────────────────────────────────
+            Sits directly under the hero because it is the offer that makes the
+            rest of the page personal - and it degrades to a plain invitation
+            when the visitor declines, never a broken panel. */}
+        <section>
+          <YourBaseline destinations={fromHereDestinations} cities={cityOptions} />
+        </section>
+
         {/* ─── THE PANEL ────────────────────────────────────────────────────── */}
         <section>
           <p className="mono m-0 text-[11px] uppercase tracking-[0.16em] text-[#7FB89C]">
@@ -332,44 +378,9 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
-            {featuredList.map((d) => {
-              const wifi = wifiBySlug[d.slug]
-              const img = destinationImage(d.slug)
-              return (
-                <Link
-                  key={d.slug}
-                  href={`/destinations/${d.slug}`}
-                  className="group relative block h-[300px] overflow-hidden rounded-[18px] border border-[rgba(127,184,156,0.16)] transition-transform duration-300 hover:-translate-y-1"
-                >
-                  {img ? (
-                    <Image
-                      src={img.thumbUrl}
-                      alt={d.name}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover saturate-[0.8]"
-                    />
-                  ) : null}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(9,22,17,0.95)] via-[rgba(9,22,17,0.25)] to-[rgba(9,22,17,0.35)]" />
-                  <div className="relative flex h-full flex-col justify-between p-4">
-                    <div className="flex items-start justify-between">
-                      <span className="mono text-[9.5px] uppercase tracking-[0.14em] text-white/60">{d.state}</span>
-                      <span className="mono rounded-full border border-white/25 bg-[rgba(9,22,17,0.5)] px-2.5 py-0.5 text-[10.5px] text-[#E9E4DA] backdrop-blur-sm">
-                        {d.elevationM.toLocaleString()}m
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="disp text-[27px] text-[#F3EFE6]">{d.name}</h3>
-                      <p className="mono mt-1.5 inline-flex items-center gap-1.5 rounded-lg border border-[rgba(127,184,156,0.25)] bg-[rgba(127,184,156,0.14)] px-2.5 py-1 text-[10.5px] text-[#A5CDB8]">
-                        {wifi?.avg_download_mbps != null ? `${wifi.avg_download_mbps} Mbps avg` : `Best: ${d.bestSeason.split('(')[0].trim()}`}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+          {/* Reorders by distance and grows real "+2,228 m / 13° cooler"
+              badges the moment a visitor shares where they are. */}
+          <FromHere destinations={fromHereDestinations} />
         </section>
 
         {/* ─── STAYS + EV ───────────────────────────────────────────────────── */}
@@ -434,5 +445,6 @@ export default async function HomePage() {
         </section>
       </div>
     </div>
+    </VisitorProvider>
   )
 }

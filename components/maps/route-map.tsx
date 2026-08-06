@@ -108,3 +108,65 @@ export function DestinationPinMap({ lat, lng, label }: Point) {
 
   return <div ref={ref} className="h-full w-full" />
 }
+
+// ─── Trip-report points ──────────────────────────────────────────────────────
+// Every geotagged item in one report. Markers carry the kind's emoji so a fuel
+// stop reads as a fuel stop at a glance, which matters when a single report can
+// hold twenty items of a dozen different kinds.
+
+export interface ReportPoint {
+  lat: number
+  lng: number
+  label: string
+  icon: string
+  sub?: string
+}
+
+function reportMarkerEl(icon: string): HTMLDivElement {
+  const el = document.createElement('div')
+  el.style.cssText =
+    'width:30px;height:30px;border-radius:50%;background:#F7F4EF;border:2px solid #1C5240;' +
+    'box-shadow:0 2px 8px rgba(26,23,20,.3);display:flex;align-items:center;justify-content:center;' +
+    'font-size:15px;line-height:1;cursor:pointer;'
+  el.textContent = icon
+  return el
+}
+
+export function ReportPointsMap({ points }: { points: ReportPoint[] }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!ref.current || points.length === 0) return
+
+    const map = new maplibregl.Map({
+      container: ref.current,
+      style: OPENFREEMAP_STYLE,
+      center: [points[0].lng, points[0].lat],
+      zoom: 9,
+      attributionControl: { compact: true },
+    })
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
+
+    const bounds = new maplibregl.LngLatBounds()
+    for (const p of points) {
+      new maplibregl.Marker({ element: reportMarkerEl(p.icon) })
+        .setLngLat([p.lng, p.lat])
+        .setPopup(
+          new maplibregl.Popup({ offset: 20 }).setText(p.sub ? `${p.label} - ${p.sub}` : p.label),
+        )
+        .addTo(map)
+      bounds.extend([p.lng, p.lat])
+    }
+
+    // A single point has zero-area bounds, which fitBounds cannot work with.
+    if (points.length > 1) {
+      map.fitBounds(bounds, { padding: 60, maxZoom: 12, duration: 0 })
+    } else {
+      map.setZoom(11)
+    }
+
+    return () => map.remove()
+  }, [points])
+
+  return <div ref={ref} className="h-full w-full" />
+}

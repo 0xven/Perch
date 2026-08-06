@@ -5,6 +5,7 @@ import { signOutAction } from '@/app/admin/auth-actions'
 export const dynamic = 'force-dynamic'
 
 const ADMIN_NAV = [
+  { href: '/admin/reports', label: 'Trip reports' },
   { href: '/admin/trip-media', label: 'Trip media' },
   { href: '/admin/posts', label: 'Posts' },
   { href: '/admin/destinations', label: 'Destinations' },

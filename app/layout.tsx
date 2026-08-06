@@ -155,12 +155,19 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+/**
+ * Six items is one more than the bar comfortably holds, so the tail of the list
+ * only appears once there is room for it. Nothing was dropped to make space for
+ * Reports: below `lg` the last three fold away, and everything is still one tap
+ * down in the footer.
+ */
 const NAV = [
-  { href: '/destinations', label: 'Destinations' },
-  { href: '/trip-finder',  label: 'Trip Finder' },
-  { href: '/stays',        label: 'Stays' },
-  { href: '/journeys',     label: 'Journeys' },
-  { href: '/charging',     label: 'EV Charging' },
+  { href: '/destinations', label: 'Destinations', show: 'sm:block' },
+  { href: '/trip-finder',  label: 'Trip Finder',  show: 'sm:block' },
+  { href: '/reports',      label: 'Reports',      show: 'sm:block' },
+  { href: '/stays',        label: 'Stays',        show: 'lg:block' },
+  { href: '/journeys',     label: 'Journeys',     show: 'lg:block' },
+  { href: '/charging',     label: 'EV Charging',  show: 'lg:block' },
 ]
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -203,7 +210,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="hidden rounded-lg px-3 py-2 text-sm font-medium text-[var(--ink-soft)] transition-all duration-200 hover:bg-[var(--paper-deep)] hover:text-[var(--ink)] sm:block"
+                    className={`hidden rounded-lg px-3 py-2 text-sm font-medium text-[var(--ink-soft)] transition-all duration-200 hover:bg-[var(--paper-deep)] hover:text-[var(--ink)] ${item.show}`}
                   >
                     {item.label}
                   </Link>
@@ -234,11 +241,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <div className="space-y-1.5 text-sm text-[var(--ink-soft)]">
                     <Link href="/destinations" className="block transition-colors hover:text-[var(--ink)]">Destinations</Link>
                     <Link href="/trip-finder"  className="block transition-colors hover:text-[var(--ink)]">Trip finder</Link>
+                    <Link href="/reports"      className="block transition-colors hover:text-[var(--ink)]">Trip reports</Link>
                     <Link href="/stays"        className="block transition-colors hover:text-[var(--ink)]">Stays</Link>
                     <Link href="/journeys"     className="block transition-colors hover:text-[var(--ink)]">Journey guides</Link>
                     <Link href="/charging"     className="block transition-colors hover:text-[var(--ink)]">EV charging map</Link>
                     <Link href="/kashmir"      className="block transition-colors hover:text-[var(--ink)]">Kashmir Circuit &apos;26</Link>
-                    <Link href="/contribute"   className="block transition-colors hover:text-[var(--ink)]">Contribute data</Link>
+                    <Link href="/contribute"   className="block transition-colors hover:text-[var(--ink)]">Write a trip report</Link>
                   </div>
                 </div>
                 <div className="space-y-2.5">

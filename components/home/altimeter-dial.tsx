@@ -1,18 +1,26 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { oxygenPercentAt } from '@/lib/data/altitude'
+import { useVisitor } from './visitor-context'
 
 /**
- * The hero's animated altimeter: a compass-style dial with a sweeping needle,
- * live-feeling (but honestly labelled) altitude/oxygen/temperature readout, and
- * two floating stat badges.
+ * The hero's altimeter.
  *
- * The dial geometry (48 ticks, 4 major labels) is fixed - only the readout
- * numbers jitter, via a slow sine wave rather than random noise, so the motion
- * reads as "a real instrument settling" rather than flicker. That wobble is
- * cosmetic chrome around a real number (5,091 m, Zoji La to Shinku La on the
- * Kashmir circuit), not a live sensor reading - see the `wifiBadge` prop for
- * where an actual measurement is shown instead.
+ * Two states, and the difference matters:
+ *
+ *   IDLE - the needle sweeps and the readout shows a REFERENCE altitude (the
+ *   high point of the Kashmir circuit). It is labelled as such, because a
+ *   number on a dial that isn't yours is decoration.
+ *
+ *   READY - once the visitor has told us where they are, every number on the
+ *   dial is theirs: real ground elevation from Open-Meteo, real oxygen
+ *   availability from the barometric formula, real current temperature. The
+ *   sweep animation stops and the needle points at their actual altitude on the
+ *   scale, because now it means something.
+ *
+ * There is deliberately no fake jitter. An earlier version wobbled the altitude
+ * with a sine wave to look "live"; that was decoration pretending to be
+ * telemetry, which is exactly what this page is supposed to be the opposite of.
  */
 
 interface Tick {
@@ -25,6 +33,9 @@ interface Tick {
 
 const CX = 200
 const CY = 200
+
+/** The dial covers 0 -> 6,000 m over a full turn; labels sit every 1,500 m. */
+const DIAL_RANGE_M = 6000
 
 function buildTicks(): Tick[] {
   return Array.from({ length: 48 }, (_, i) => {
@@ -49,34 +60,31 @@ function buildLabels(): { x: number; y: number; t: string }[] {
   })
 }
 
-// Fixed dial geometry - no props/state feed it, so it's computed once at
-// module load rather than memoized per render.
+// Fixed geometry - no props or state feed it, so it is computed once at module
+// load rather than memoised on every render.
 const TICKS = buildTicks()
 const LABELS = buildLabels()
 
 export function AltimeterDial({
-  altitude,
-  wifiBadge,
+  referenceAltitude,
+  referenceLabel,
 }: {
-  /** The real elevation this dial centres on, e.g. Kashmir's Shinku La at 5,091 m. */
-  altitude: number
-  /** A real reading to show in the floating badge, or null to omit it entirely. */
-  wifiBadge: { mbps: number; place: string } | null
+  /** Shown until the visitor shares a location - e.g. the Kashmir circuit's high point. */
+  referenceAltitude: number
+  referenceLabel: string
 }) {
-  const [wobble, setWobble] = useState(0)
+  const { place, status } = useVisitor()
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setWobble(Math.sin(Date.now() / 5000) * 6)
-    }, 1500)
-    return () => clearInterval(id)
-  }, [])
+  const isPersonal = place?.elevationM != null
+  const altitude = isPersonal ? place.elevationM! : referenceAltitude
+  const oxygen = oxygenPercentAt(altitude)
 
-  const shownAltitude = Math.round(altitude + wobble)
-  const oxygenPct = Math.max(38, Math.round(100 - shownAltitude / 88))
+  // Clamped so a Himalayan pass past the top of the scale still parks the
+  // needle at the ceiling instead of wrapping around to look like sea level.
+  const needleDeg = (Math.min(altitude, DIAL_RANGE_M) / DIAL_RANGE_M) * 360
 
   return (
-    <div className="relative mx-auto w-full max-w-[400px] aspect-square">
+    <div className="relative mx-auto aspect-square w-full max-w-[400px]">
       <svg viewBox="0 0 400 400" className="absolute inset-0 h-full w-full">
         <circle cx="200" cy="200" r="192" fill="none" stroke="rgba(233,228,218,0.08)" strokeWidth="1" />
         <g className="dial-ring" style={{ transformOrigin: '200px 200px' }}>
@@ -107,39 +115,46 @@ export function AltimeterDial({
           </text>
         ))}
         <circle cx="200" cy="200" r="118" fill="rgba(233,228,218,0.03)" stroke="rgba(233,228,218,0.1)" strokeWidth="1" />
-        <g className="dial-needle" style={{ transformOrigin: '200px 200px' }}>
+
+        {/* Idle: the shared sweep keyframe. Personal: a real bearing, eased into
+            place once, so the movement itself reads as "it found you". */}
+        <g
+          className={isPersonal ? undefined : 'dial-needle'}
+          style={
+            isPersonal
+              ? {
+                  transformOrigin: '200px 200px',
+                  transform: `rotate(${needleDeg}deg)`,
+                  transition: 'transform 1.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                }
+              : { transformOrigin: '200px 200px' }
+          }
+        >
           <line x1="200" y1="200" x2="200" y2="96" stroke="#E0A93B" strokeWidth="2" strokeLinecap="round" />
           <circle cx="200" cy="200" r="5" fill="#E0A93B" />
         </g>
       </svg>
 
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-10 text-center">
         <p className="mono mt-[88px] text-[10px] uppercase tracking-[0.18em] text-[rgba(233,228,218,0.45)]">
-          Altimeter
+          {isPersonal ? 'Your altitude' : 'Altimeter'}
         </p>
-        <p className="disp mt-0.5 text-[44px] text-[#F3EFE6]">
-          {shownAltitude.toLocaleString()}
-          <span className="text-[19px] text-[rgba(233,228,218,0.5)]"> m</span>
+        <p className="disp mt-0.5 text-[44px] leading-none text-[#F3EFE6]">
+          {status === 'locating' && !isPersonal ? (
+            <span className="text-[26px] text-[rgba(233,228,218,0.6)]">Locating…</span>
+          ) : (
+            <>
+              {altitude.toLocaleString()}
+              <span className="text-[19px] text-[rgba(233,228,218,0.5)]"> m</span>
+            </>
+          )}
         </p>
-        <p className="mono mt-0.5 text-[11px] text-[#7FB89C]">O₂ {oxygenPct}%</p>
-      </div>
-
-      {wifiBadge ? (
-        <div className="absolute -right-1.5 top-3.5 rounded-lg border border-[rgba(127,184,156,0.3)] bg-[rgba(10,25,18,0.88)] px-2.5 py-1.5">
-          <p className="mono m-0 text-[9px] uppercase tracking-[0.13em] text-[rgba(233,228,218,0.45)]">
-            Last WiFi test
-          </p>
-          <p className="mono m-0 mt-0.5 text-[12.5px] text-[#E9E4DA]">
-            {wifiBadge.mbps} Mbps ↓ · {wifiBadge.place}
-          </p>
-        </div>
-      ) : null}
-
-      <div className="absolute -left-1.5 bottom-6 rounded-lg border border-[rgba(224,169,59,0.35)] bg-[rgba(10,25,18,0.88)] px-2.5 py-1.5">
-        <p className="mono m-0 text-[9px] uppercase tracking-[0.13em] text-[rgba(233,228,218,0.45)]">
-          Road status
+        <p className="mono mt-1 text-[11px] text-[#7FB89C]">
+          O₂ {oxygen}%{place?.tempC != null ? ` · ${place.tempC}°C` : ''}
         </p>
-        <p className="mono m-0 mt-0.5 text-[12.5px] text-[#E0A93B]">Check per destination →</p>
+        <p className="mono mt-1 max-w-[190px] text-[9.5px] uppercase leading-relaxed tracking-[0.1em] text-[rgba(233,228,218,0.35)]">
+          {isPersonal ? place!.label : referenceLabel}
+        </p>
       </div>
     </div>
   )

@@ -235,3 +235,81 @@ export interface SiteSettings {
 
   updated_at: string | null
 }
+
+// ─── Trip reports (migration 006) ────────────────────────────────────────────
+
+/**
+ * The public shape of a trip report - exactly the columns in the
+ * `trip_reports_public` view, which is to say every column EXCEPT
+ * contact_email. Nothing that renders a public page should ever be handed a
+ * type with the email on it, so the public type simply does not have one.
+ */
+export interface TripReportPublic {
+  id: string
+  public_id: string
+  destination_slug: string | null
+  origin_name: string | null
+  trip_date: string | null
+  transport_mode: string | null
+  vehicle: string | null
+  days: number | null
+  travellers: number | null
+  total_cost_inr: number | null
+  title: string | null
+  summary: string | null
+  author_name: string | null
+  published: boolean
+  created_at: string
+}
+
+/** The base row. Only ever fetched with an admin session. */
+export interface TripReportAdmin extends TripReportPublic {
+  contact_email: string | null
+}
+
+/**
+ * One thing the traveller saw. `kind` is a string rather than a union because
+ * the taxonomy lives in lib/data/report-kinds.ts and is meant to grow without a
+ * migration OR a type change; `details` carries the kind-specific fields.
+ */
+export interface TripReportItem {
+  id: string
+  report_id: string
+  kind: string
+  name: string | null
+  lat: number | null
+  lng: number | null
+  area: string | null
+  rating: number | null
+  cost_inr: number | null
+  notes: string | null
+  details: Record<string, string | number | boolean>
+  sort: number
+  created_at: string
+}
+
+export interface TripReportMedia {
+  id: string
+  report_id: string
+  url: string
+  caption: string | null
+  sort: number
+  created_at: string
+}
+
+/** What trip_report_detail(public_id) returns, and what /report/[publicId] renders. */
+export interface TripReportDetail {
+  report: TripReportPublic
+  items: TripReportItem[]
+  media: TripReportMedia[]
+}
+
+/** A row on the /reports browse page: the skeleton plus what it can be filtered by. */
+export interface TripReportSummary extends TripReportPublic {
+  kinds: string[]
+  itemCount: number
+  photoCount: number
+  /** Mean of the item ratings that were given, or null if nobody rated anything. */
+  avgRating: number | null
+  coverUrl: string | null
+}
