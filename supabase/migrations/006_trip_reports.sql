@@ -318,7 +318,22 @@ as $$
   select r.id, r.contact_email from public.trip_reports r where public.is_admin();
 $$;
 
+-- `revoke ... from public` is NOT enough on Supabase, and this was found the
+-- hard way by running the migration and then asking the database who could
+-- actually call this. Supabase ships ALTER DEFAULT PRIVILEGES that grant EXECUTE
+-- on every new function in `public` to anon, authenticated and service_role. So
+-- revoking PUBLIC and granting `authenticated` still left anon holding an
+-- explicit grant of its own - `\df+` showed `anon=X/postgres` on this function.
+--
+-- Nothing leaked: the body's `where public.is_admin()` returns zero rows for
+-- anon, so the call came back empty rather than with addresses. But the point of
+-- three independent mechanisms is that none of them is load-bearing on its own,
+-- and "the function is reachable unauthenticated but its WHERE clause saves us"
+-- is exactly the kind of single point of failure this section exists to avoid.
+--
+-- The explicit revoke below is therefore the real gate. Keep it.
 revoke all on function public.trip_report_contacts() from public;
+revoke execute on function public.trip_report_contacts() from anon;
 grant execute on function public.trip_report_contacts() to authenticated;
 
 -- ─── STORAGE: `report-uploads` bucket ────────────────────────────────────────
