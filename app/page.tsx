@@ -175,8 +175,12 @@ export default async function HomePage() {
               >
                 Explore destinations →
               </Link>
+              {/* Trip finder, not /journeys: "plan a journey" is someone who
+                  has not chosen a destination yet, and the finder is the tool
+                  that answers that. /journeys is route write-ups for a trip
+                  already decided on. */}
               <Link
-                href="/journeys"
+                href="/trip-finder"
                 className="rounded-[11px] border border-white/25 px-[22px] py-[13px] text-[15px] font-semibold text-[#E9E4DA]"
               >
                 Plan a journey
