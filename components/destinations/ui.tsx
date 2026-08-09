@@ -13,14 +13,9 @@ const NOISE_LABEL: Record<string, string> = {
   quiet: 'Quiet', moderate: 'Moderate noise', noisy: 'Noisy',
 }
 
-export function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="card flex items-center justify-between p-4">
-      <span className="text-xs uppercase tracking-wide text-[var(--ink-soft)]">{label}</span>
-      <span className="text-sm font-medium text-[var(--ink)]">{value}</span>
-    </div>
-  )
-}
+// `Fact` lived here - a label/value row used only by the Overview tab's old
+// right-hand rail. GlanceStrip replaced that rail with four instrument tiles,
+// leaving this with no callers, so it is gone rather than left to rot.
 
 export function Stat({ label, value }: { label: string; value: string }) {
   return (

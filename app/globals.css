@@ -398,8 +398,43 @@ p { text-wrap: pretty; }
    travel to whatever the next value is, not replay from zero. */
 .meter-fill { transition: width 0.45s var(--motion-out); }
 
+/* ─── Destination "at a glance" instruments ───────────────────────────────────
+   The four tiles at the top of a destination's Overview. These are the only
+   animations on that page that carry meaning rather than decoration: the ring
+   sweeps to the real oxygen fraction and the bar fills to the real elevation,
+   so the motion IS the reading arriving. Everything else there uses the shared
+   .reveal scroll-in. */
+@keyframes ringDraw { from { stroke-dashoffset: var(--ring-len); } }
+@keyframes barFill  { from { transform: scaleX(0); } }
+@keyframes sheenSweep {
+  from { transform: translateX(-130%) skewX(-18deg); }
+  to   { transform: translateX(240%)  skewX(-18deg); }
+}
+
+.ring-draw { animation: ringDraw 1.5s var(--motion-out) both; }
+.bar-fill  { transform-origin: left; animation: barFill 1.2s var(--motion-out) both; }
+
+/* A single light sweep on hover. Costs one pseudo-element and reads as the
+   surface catching the light, rather than anything blinking for attention. */
+.sheen { position: relative; overflow: hidden; }
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 42%, rgb(255 255 255 / 0.5) 50%, transparent 58%);
+  transform: translateX(-130%) skewX(-18deg);
+}
+.sheen:hover::after { animation: sheenSweep 0.85s var(--motion-out); }
+
+/* Highlight bullets stagger in behind the card's own reveal. */
+@keyframes markIn { from { opacity: 0; transform: translateX(-6px); } }
+.mark-in { animation: markIn 0.5s var(--motion-out) both; }
+
 /* ─── Reduced motion ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
+  .ring-draw, .bar-fill, .mark-in { animation: none; }
+  .sheen:hover::after { animation: none; }
   .item-in, .step-in, .assist-in, .combo-pop, .id-pop, .result-in { animation: none; }
   .meter-fill { transition: none; }
   html { scroll-behavior: auto; }
