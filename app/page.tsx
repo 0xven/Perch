@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { IBM_Plex_Mono, Newsreader, Schibsted_Grotesk } from 'next/font/google'
 import Link from 'next/link'
-import Image from 'next/image'
 import { AltimeterDial } from '@/components/home/altimeter-dial'
 import { TelemetryTicker } from '@/components/home/telemetry-ticker'
 import { VisitorProvider } from '@/components/home/visitor-context'
