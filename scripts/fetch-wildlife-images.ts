@@ -149,7 +149,28 @@ interface Candidate {
 }
 
 function stripHtml(s: string): string {
-  return s.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&#0?39;|&apos;/g, "'").replace(/\s+/g, ' ').trim()
+  // Tags and entities are resolved together, to a fixed point, because doing
+  // either one once is not enough:
+  //   - one strip pass turns `<scr<b>ipt>` into `<script>` (CodeQL
+  //     js/incomplete-multi-character-sanitization)
+  //   - unescaping after stripping can rebuild markup the strip just removed
+  //     (`&amp;lt;b&amp;gt;` -> `&lt;b&gt;`) (CodeQL js/double-escaping)
+  // Looping until the string stops changing handles both orderings.
+  let out = s
+  for (let i = 0; i < 5; i++) {
+    const before = out
+    out = out
+      .replace(/<[^>]*>/g, '')
+      .replace(/&(?:amp|#0*38);/gi, '&')
+      .replace(/&(?:lt|#0*60);/gi, '<')
+      .replace(/&(?:gt|#0*62);/gi, '>')
+      .replace(/&(?:quot|#0*34);/gi, '"')
+      .replace(/&(?:apos|#0*39);/gi, "'")
+    if (out === before) break
+  }
+  // Belt and braces: whatever survives, no angle bracket leaves this function,
+  // so the result cannot open an element no matter what Commons sent us.
+  return out.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim()
 }
 
 function uniqueMatches(re: RegExp, text: string): number {
