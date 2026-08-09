@@ -1,0 +1,52 @@
+# Static security analysis. Free on public repositories.
+#
+# Worth having here specifically because this app took on an anonymous write
+# surface with the trip reports (migration 006): unauthenticated visitors can
+# insert rows and upload images. The database side is defended by RLS and
+# column grants, but CodeQL watches the other half - the application code that
+# builds those queries and renders what comes back. It is the kind of review
+# that catches an injection or an unsafe render months after the code was
+# written and everyone stopped looking at it.
+#
+# security-extended over the default suite: this is a small codebase, the extra
+# few minutes cost nothing, and the additional rules are where the interesting
+# findings live.
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays, 06:17 UTC. Off the hour on purpose - scheduled jobs at :00 queue
+    # behind everyone else's.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+
+      # No build step: the JS/TS analyser reads source directly, so this does
+      # not need npm ci or Supabase credentials.
+      - name: Analyse
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"

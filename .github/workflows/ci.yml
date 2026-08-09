@@ -1,0 +1,59 @@
+# The gates that actually protect this codebase: types, lint, and a real
+# production build.
+#
+# This replaces a Deno starter workflow that was added by mistake. There is no
+# Deno here - no deno.json, no Deno imports, no Deno tests - so `deno lint` was
+# judging a Next.js app by another runtime's rules and `deno test -A` was
+# running zero tests. Neither told us anything true about whether the site works.
+#
+# The build step is the important one. Type errors and lint slip past easily;
+# a broken `next build` takes the site down, and Vercel deploys straight from
+# main on every push, so this is the only thing standing in front of that.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs - pushing twice in a minute should not queue two builds.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint app components lib scripts --quiet
+
+      - name: Build
+        # Placeholder Supabase credentials on purpose. Every query in this app
+        # is written to degrade to a sensible fallback when the database is
+        # unreachable (see lib/queries/*.ts), so the build completes and we get
+        # to verify the whole route table without putting real credentials -
+        # even public anon ones - into CI. Verified: builds clean with these.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_SITE_URL: https://perch-gamma.vercel.app
+        run: npm run build

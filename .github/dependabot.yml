@@ -1,0 +1,39 @@
+# Dependency updates.
+#
+# Grouped deliberately. Ungrouped Dependabot on a Next.js app opens a dozen PRs
+# a week and they all get ignored, which is worse than not running it - the
+# security ones drown in the noise. One PR for patches, one for minors, and
+# majors on their own so a Next or React jump gets read properly.
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      patch-and-minor:
+        update-types: [patch, minor]
+    ignore:
+      # Majors here are never routine - they need the migration notes read and
+      # the app driven in a browser. Left to a deliberate, human-initiated bump.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: tailwindcss
+        update-types: [version-update:semver-major]
+
+  # The actions in ci.yml and codeql.yml are pinned by tag; this keeps them
+  # current so we are not running a deprecated runner a year from now.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
