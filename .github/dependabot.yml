@@ -28,6 +28,20 @@ updates:
       - dependency-name: tailwindcss
         update-types: [version-update:semver-major]
 
+      # BLOCKED UPSTREAM, not by us. The first CI run proved both, so they are
+      # ignored to stop a red PR reappearing every week for something we cannot
+      # act on. Re-check when eslint-config-next ships support, then DELETE
+      # these two entries - they are meant to be temporary.
+      #
+      #   typescript 7.x  -> "typescript-eslint does not support TS 7.0"
+      #                      (eslint-config-next's bundled typescript-eslint)
+      #   eslint 10.x     -> eslint-plugin-react calls contextOrFilename
+      #                      .getFilename(), removed in ESLint 10's rule API
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
+
   # The actions in ci.yml and codeql.yml are pinned by tag; this keeps them
   # current so we are not running a deprecated runner a year from now.
   - package-ecosystem: github-actions
