@@ -13,8 +13,6 @@ import { checkReportPhoto } from '@/lib/validations/trip-report'
  */
 export const REPORT_BUCKET = 'report-uploads'
 
-const PUBLIC_PREFIX = `/storage/v1/object/public/${REPORT_BUCKET}/`
-
 export type ReportUploadResult = { ok: true; url: string } | { ok: false; error: string }
 
 /**
@@ -54,32 +52,44 @@ export async function uploadReportPhoto(
   return { ok: true, url: data.publicUrl }
 }
 
-/** The object path inside the bucket for one of our URLs, or null if not ours. */
-export function reportStoragePathFromUrl(url: string): string | null {
-  try {
-    const { pathname } = new URL(url)
-    const i = pathname.indexOf(PUBLIC_PREFIX)
-    if (i === -1) return null
-    return decodeURIComponent(pathname.slice(i + PUBLIC_PREFIX.length))
-  } catch {
-    return null
-  }
-}
-
 /**
- * Best-effort removal of a report's photos. Admin only (the bucket's delete
- * policy is is_admin()). A failure is logged, never thrown: an orphaned object
- * is a smaller problem than a report row that will not delete.
+ * Best-effort removal of a report's photos, by LISTING THE REPORT'S OWN FOLDER.
+ *
+ * It used to take the urls off the report's trip_report_media rows and delete
+ * whatever they pointed at. That was a confused deputy, and a bad one: those
+ * urls are free text written by anonymous visitors, this runs under the ADMIN's
+ * session, and the bucket's delete policy is bucket-wide `is_admin()`. So a junk
+ * report whose media rows named OTHER reports' objects would, the moment the
+ * owner clicked Delete on it, take every one of those photos with it. Storage
+ * deletes are hard deletes with no versioning.
+ *
+ * Deriving the paths from `reports/<publicId>/` instead means the set of objects
+ * this can ever touch is fixed by the report's own identity, and nothing an
+ * attacker can write into the database is consulted at all. Migration 007 adds
+ * a matching trigger so a hostile url cannot be stored in the first place, but
+ * this function no longer depends on that being true.
+ *
+ * Admin only - the bucket's select and delete policies both call is_admin().
+ * Failures are logged, never thrown: an orphaned object is a smaller problem
+ * than a report row that will not delete.
  */
 export async function deleteReportPhotos(
   supabase: SupabaseClient,
-  urls: (string | null)[],
+  publicId: string,
 ): Promise<void> {
-  const paths = urls
-    .map((u) => (u ? reportStoragePathFromUrl(u) : null))
-    .filter((p): p is string => p !== null)
+  const folder = `reports/${publicId}`
 
-  if (paths.length === 0) return
+  const { data: objects, error: listError } = await supabase.storage
+    .from(REPORT_BUCKET)
+    .list(folder, { limit: 1000 })
+
+  if (listError) {
+    console.error('[report-storage] list failed:', listError.message)
+    return
+  }
+  if (!objects || objects.length === 0) return
+
+  const paths = objects.map((o) => `${folder}/${o.name}`)
 
   const { error } = await supabase.storage.from(REPORT_BUCKET).remove(paths)
   if (error) console.error('[report-storage] delete failed:', error.message)

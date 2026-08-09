@@ -105,18 +105,18 @@ export async function deleteReport(
 
     const supabase = await createClient()
 
-    const { data: media } = await supabase
-      .from('trip_report_media')
-      .select('url')
-      .eq('report_id', ids.id)
-
     const { error } = await supabase.from('trip_reports').delete().eq('id', ids.id)
     if (error) {
       console.error('[admin/reports] delete failed:', error.message)
       return { error: `Could not delete: ${error.message}` }
     }
 
-    await deleteReportPhotos(supabase, ((media ?? []) as { url: string }[]).map((m) => m.url))
+    // Photos are found by listing the report's OWN folder, not by reading the
+    // urls off its media rows. Those rows are anonymous input, and this call
+    // runs with admin rights against a bucket-wide delete policy - trusting
+    // them let a junk report name other people's photos and have the owner
+    // delete them by clicking Delete on the junk. See lib/supabase/report-storage.ts.
+    await deleteReportPhotos(supabase, ids.publicId)
 
     refresh(ids.publicId)
     return { message: 'Report deleted, photos and all.' }
