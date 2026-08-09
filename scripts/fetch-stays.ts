@@ -16,6 +16,7 @@
 
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import process from 'node:process'
 import { DESTINATIONS } from '../lib/data/destinations'
 import { ORIGIN_CITIES, haversineKm } from '../lib/data/places'
 import type { OsmStay, StayType } from '../lib/data/stays'

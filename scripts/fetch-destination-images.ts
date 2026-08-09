@@ -18,6 +18,8 @@
 
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
+import process from 'node:process'
+import { Buffer } from 'node:buffer'
 import sharp from 'sharp'
 import { DESTINATIONS, type HillStation } from '../lib/data/destinations'
 import { DESTINATION_IMAGES } from '../lib/data/destination-images'

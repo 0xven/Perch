@@ -11,7 +11,7 @@ import { filterStays, staysNearDestination } from '@/lib/data/stays-all'
  * Open data, our own file, no upstream call: this costs nothing and needs no
  * key. It is dynamic only because it reads query params.
  */
-export async function GET(request: Request) {
+export function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const dest = (searchParams.get('dest') ?? '').trim()
   const q = (searchParams.get('q') ?? '').trim().slice(0, 80)

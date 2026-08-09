@@ -21,6 +21,7 @@
 
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import process from 'node:process'
 import { DESTINATIONS } from '../lib/data/destinations'
 import { CLIMATE_NORMALS as EXISTING, type MonthlyNormal } from '../lib/data/climate-normals'
 

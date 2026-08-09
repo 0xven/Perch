@@ -52,7 +52,7 @@ export function DeleteButton({
       type="submit"
       disabled={pending}
       onClick={(e) => {
-        if (!window.confirm(confirm)) e.preventDefault()
+        if (!globalThis.confirm(confirm)) e.preventDefault()
       }}
       className="rounded-xl border border-[var(--clay)]/40 px-3 py-2 text-xs font-semibold text-[var(--clay)] transition-colors hover:bg-[var(--clay)]/10 disabled:cursor-not-allowed disabled:opacity-60"
     >
