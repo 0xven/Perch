@@ -5,6 +5,7 @@ import { filterStays, STAY_TYPES_PRESENT, STAY_TOTALS, type StaySort } from '@/l
 import { StaysFilterBar } from '@/components/stays/stays-filter-bar'
 import { StayCard } from '@/components/stays/stay-card'
 import { BookingLinks } from '@/components/stays/booking-links'
+import { getStayNotes, stayNoteKey } from '@/lib/queries/stay-reports'
 
 export const metadata: Metadata = {
   title: 'Stays - where to stay across South India',
@@ -35,6 +36,11 @@ export default async function StaysPage({
     q: current.q,
     sort: current.sort as StaySort,
   })
+
+  // One cached query for every card on the page rather than one per stay.
+  // Empty until people file reports, and empty is a fine state - the card just
+  // shows its generated cover and the outbound links.
+  const stayNotes = await getStayNotes()
 
   const selectedDest = current.dest !== 'all' ? getDestination(current.dest) : undefined
   const capped = current.dest === 'all' ? all.slice(0, RESULT_CAP) : all
@@ -112,7 +118,11 @@ export default async function StaysPage({
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {capped.map((s) => (
-              <StayCard key={s.id} stay={s} />
+              <StayCard
+                key={s.id}
+                stay={s}
+                notes={stayNotes[stayNoteKey(s.nearestDestSlug, s.name)] ?? []}
+              />
             ))}
           </div>
         )}
@@ -121,11 +131,17 @@ export default async function StaysPage({
         <p className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 text-sm leading-relaxed text-[var(--ink-soft)]">
           <span className="font-semibold text-[var(--ink)]">Where this comes from.</span> These stays
           are real places from OpenStreetMap open data (keyless, no billing), mapped to the nearest
-          hill station. We deliberately do not copy Airbnb or OTA listings - that breaks their terms
-          and copyright - so for live photos, prices and availability the buttons above link straight
-          to each provider&apos;s own search. Worked from somewhere great?{' '}
-          <Link href="/contribute" className="font-medium text-[var(--brand)] underline">Add it with a WiFi rating</Link>{' '}
-          to help the next remote worker.
+          hill station.{' '}
+          <span className="font-semibold text-[var(--ink)]">Why there are no photographs:</span> the
+          pictures on Google Maps and the booking sites belong to those businesses and to the people
+          who took them, so copying them here would be someone else&apos;s work on our page. Each
+          stay gets a generated cover instead, and the <span className="whitespace-nowrap">📷 Photos</span>{' '}
+          button opens the listing where the real ones legitimately live. Same reason we link out to
+          Airbnb and the OTAs for prices and availability rather than mirroring them.{' '}
+          <span className="font-semibold text-[var(--ink)]">The pictures we can show</span> are the
+          ones travellers take themselves -{' '}
+          <Link href="/contribute" className="font-medium text-[var(--brand)] underline">write a trip report</Link>{' '}
+          and what you say about a place appears on its card here.
         </p>
       </div>
     </div>
