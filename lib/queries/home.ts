@@ -1,18 +1,15 @@
+import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 import { unstable_rethrow } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public-client'
 import type { DestinationWifiSummary } from '@/lib/types/database'
 
-/**
- * Build a slug -> WiFi-summary map by joining the static catalogue (slugs) to the
- * Supabase `destination_wifi_summary` view (keyed by destination id).
- *
- * The catalogue is the source of truth, so this only adds the optional community
- * WiFi layer. It NEVER throws: on any DB error it logs and returns an empty map
- * so pages still render from the catalogue.
- */
-export async function getWifiBySlug(): Promise<Record<string, DestinationWifiSummary>> {
+/** Cache tag, so a new WiFi reading can invalidate this on demand later. */
+export const WIFI_SUMMARY_TAG = 'wifi-summary'
+
+async function fetchWifiBySlug(): Promise<Record<string, DestinationWifiSummary>> {
   try {
-    const supabase = await createClient()
+    const supabase = createPublicClient()
     const [destRes, wifiRes] = await Promise.all([
       supabase.from('destinations').select('id, slug'),
       supabase.from('destination_wifi_summary').select('*'),
@@ -31,10 +28,40 @@ export async function getWifiBySlug(): Promise<Record<string, DestinationWifiSum
     }
     return wifiBySlug
   } catch (e) {
-    // Re-throw Next control-flow signals (e.g. the cookies() dynamic-rendering
-    // marker) so the route is still correctly treated as dynamic.
     unstable_rethrow(e)
     console.error('[getWifiBySlug] unexpected error:', e)
     return {}
   }
 }
+
+/**
+ * Slug -> community WiFi summary, joining the static catalogue to the Supabase
+ * `destination_wifi_summary` view.
+ *
+ * TWO THINGS HERE ARE ABOUT SPEED, and they are why / and /destinations are
+ * served from the edge instead of rendered per request.
+ *
+ * 1. THE COOKIE-LESS CLIENT. This used to use lib/supabase/server's client,
+ *    which calls cookies() - and reading cookies is a dynamic signal, so it
+ *    forced both pages to `ƒ` no matter what `revalidate` they declared. Every
+ *    visitor paid for a fresh render and Vercel's cache never held them
+ *    (measured: x-vercel-cache MISS on every request, ~340ms TTFB, spiking to
+ *    1.4s). Nothing here is per-visitor - it is public community averages - so
+ *    the cookie-bound client was buying nothing and costing the cache.
+ *
+ * 2. unstable_cache. supabase-js issues an uncached fetch, which is itself a
+ *    dynamic signal. Wrapping it puts the query in a cache scope so prerendering
+ *    survives. Same pattern, and the same reasoning, as
+ *    lib/queries/site-settings.ts.
+ *
+ * react cache() on top collapses repeat calls within one render into one lookup.
+ *
+ * It still NEVER throws: any DB failure logs and returns {}, so the pages fall
+ * back to the catalogue exactly as before.
+ */
+export const getWifiBySlug = cache(
+  unstable_cache(fetchWifiBySlug, ['wifi-by-slug-v1'], {
+    tags: [WIFI_SUMMARY_TAG],
+    revalidate: 1800,
+  }),
+)
