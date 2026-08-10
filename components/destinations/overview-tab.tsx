@@ -82,31 +82,44 @@ export function OverviewTab({ dest }: { dest: HillStation }) {
         </Reveal>
       ) : null}
 
-      {/* ─── 3. Where it is, and what it is doing right now ─────────────── */}
+      {/* ─── 3. Map, full width ─────────────────────────────────────────── */}
       <Reveal>
-        {/* min-w-0 on both children is load-bearing, not tidiness. A grid item
-            defaults to min-width:auto, so it refuses to shrink below its
-            content's intrinsic width - and the 16-day forecast strip inside the
-            weather card is 16 x 64px of it. Without this the column forces the
-            whole page to ~1040px and a phone scrolls sideways; with it the
-            strip's own overflow-x-auto does the scrolling instead. */}
-        <section className="grid gap-4 lg:grid-cols-[1.1fr_1fr] lg:items-start">
-          {/* The map gets real estate now instead of a sidebar sliver. */}
-          <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--line)] shadow-[var(--elev-sm)]">
-            <DestinationPinMapClient lat={dest.lat} lng={dest.lng} label={dest.name} />
-          </div>
-          <div className="min-w-0 space-y-3">
-            <Suspense fallback={<WeatherSkeleton />}>
-              <WeatherCard lat={dest.lat} lng={dest.lng} name={dest.name} />
-            </Suspense>
-            <ClimateOutlook slug={dest.slug} />
-          </div>
-        </section>
+        <div className="min-w-0 overflow-hidden rounded-2xl border border-[var(--line)] shadow-[var(--elev-sm)]">
+          <DestinationPinMapClient
+            lat={dest.lat}
+            lng={dest.lng}
+            label={dest.name}
+            heightClass="h-[280px] sm:h-[360px] lg:h-[420px]"
+          />
+        </div>
       </Reveal>
 
-      {/* ─── 4. The written detail ──────────────────────────────────────── */}
-      <section className="grid gap-5 lg:grid-cols-2 lg:items-start">
-        <Reveal>
+      {/* ─── 4. Live weather, full width ────────────────────────────────────
+          16 days is not a choice - it is Open-Meteo's hard ceiling (asking for
+          more returns "Allowed range 0 to 16"), and no free provider forecasts
+          further out because daily forecasts stop being meaningful past about
+          two weeks. The climate outlook below is what covers the rest.
+          min-w-0 is load-bearing: the forecast strip is 16 x 64px of intrinsic
+          width and would otherwise force the whole page sideways on a phone
+          instead of scrolling inside its own container. */}
+      <Reveal>
+        <div className="min-w-0">
+          <Suspense fallback={<WeatherSkeleton />}>
+            <WeatherCard lat={dest.lat} lng={dest.lng} name={dest.name} />
+          </Suspense>
+        </div>
+      </Reveal>
+
+      {/* ─── 5. Climate outlook, full width ─────────────────────────────── */}
+      <Reveal>
+        <div className="min-w-0">
+          <ClimateOutlook slug={dest.slug} />
+        </div>
+      </Reveal>
+
+      {/* ─── 6. Highlights + Charging, side by side ─────────────────────── */}
+      <section className="grid gap-5 lg:grid-cols-2 lg:items-stretch">
+        <Reveal className="h-full">
           <div className="card card-hover h-full p-6">
             <h2 className="font-display text-2xl tracking-tight text-[var(--ink)]">Highlights</h2>
             <ul className="mt-3 space-y-2.5">
@@ -123,84 +136,15 @@ export function OverviewTab({ dest }: { dest: HillStation }) {
           </div>
         </Reveal>
 
-        <Reveal delay={80}>
-          <div className="card card-hover h-full p-6">
-            <h2 className="font-display text-2xl tracking-tight text-[var(--ink)]">Working from here</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">{dest.remoteWorkNote}</p>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
-              Community WiFi readings, work spots and route reports appear in the tabs above as
-              travellers contribute them.
-            </p>
-          </div>
-        </Reveal>
-
-        {/* ─── Wildlife, only when the place is famous for it ───────────── */}
-        {wildlife ? (
-          <Reveal delay={120}>
-            <div className="card card-hover h-full overflow-hidden">
-              <div className="bg-gradient-to-br from-[var(--brand)] to-[var(--brand-deep)] p-5 text-white">
-                <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/55">
-                  🐾 Wildlife &amp; nature
-                </p>
-                <h2 className="mt-1 font-display text-2xl tracking-tight">{wildlife.park}</h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-white/85">{wildlife.note}</p>
-              </div>
-              {/* Real CC-licensed photo of the headline species, self-hosted under
-                  public/wildlife/. Credit line mirrors the destination hero. */}
-              {wildlifePic ? (
-                <figure className="group relative aspect-[16/10] w-full overflow-hidden bg-[var(--brand-deep)]">
-                  <Image
-                    src={wildlifePic.url}
-                    alt={`${wildlife.species[0]} - ${wildlife.park}`}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 45vw"
-                    className="object-cover transition-transform duration-700 ease-[var(--motion-out)] group-hover:scale-105"
-                  />
-                  <figcaption>
-                    <a
-                      href={wildlifePic.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute bottom-1.5 right-2 rounded bg-black/45 px-1.5 py-0.5 text-[10px] text-white/80 backdrop-blur-sm transition-colors hover:text-white"
-                    >
-                      📷 {wildlifePic.attribution} / {wildlifePic.license} · Wikimedia
-                    </a>
-                  </figcaption>
-                </figure>
-              ) : null}
-              <div className="p-5">
-                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-soft)]">
-                  Wildlife you may spot
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {wildlife.species.map((s, i) => (
-                    <span
-                      key={s}
-                      className="mark-in rounded-full border border-[var(--line)] bg-[var(--paper-deep)] px-3 py-1 text-xs font-medium text-[var(--ink)] transition-colors hover:border-[var(--brand-mint)]"
-                      style={{ animationDelay: `${i * 70}ms` }}
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-3 text-[11px] leading-relaxed text-[var(--ink-soft)]">
-                  Sightings are never guaranteed - go with a registered guide or forest-department
-                  safari, keep your distance, and never feed the animals.
-                </p>
-              </div>
-            </div>
-          </Reveal>
-        ) : null}
-
-        <Reveal delay={wildlife ? 160 : 120}>
-          <div className="card card-hover h-full p-6">
+        <Reveal delay={80} className="h-full">
+          <div className="card card-hover flex h-full flex-col p-6">
             <h2 className="font-display text-2xl tracking-tight text-[var(--ink)]">🔌 Charging</h2>
             <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
               On the hill routes a working DC charger can be an hour apart, so check live availability
               and start the climb with enough range. These open the current maps, not a list that goes
               stale.
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-auto flex flex-wrap gap-2 pt-4">
               <a
                 href={evSearchNear(`${dest.name}, ${dest.state}`)}
                 target="_blank"
@@ -216,6 +160,78 @@ export function OverviewTab({ dest }: { dest: HillStation }) {
           </div>
         </Reveal>
       </section>
+
+      {/* ─── 7. Working from here, full width ───────────────────────────── */}
+      <Reveal>
+        <div className="card card-hover p-6">
+          <h2 className="font-display text-2xl tracking-tight text-[var(--ink)]">Working from here</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--ink-soft)]">
+            {dest.remoteWorkNote}
+          </p>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--ink-soft)]">
+            Community WiFi readings, work spots and route reports appear in the tabs above as
+            travellers contribute them.
+          </p>
+        </div>
+      </Reveal>
+
+      {/* ─── 8. Wildlife, only when the place is famous for it ───────────── */}
+      {wildlife ? (
+        <Reveal>
+          <div className="card card-hover overflow-hidden">
+            <div className="bg-gradient-to-br from-[var(--brand)] to-[var(--brand-deep)] p-5 text-white">
+              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/55">
+                🐾 Wildlife &amp; nature
+              </p>
+              <h2 className="mt-1 font-display text-2xl tracking-tight">{wildlife.park}</h2>
+              <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-white/85">{wildlife.note}</p>
+            </div>
+            {/* Real CC-licensed photo of the headline species, self-hosted under
+                public/wildlife/. Credit line mirrors the destination hero. */}
+            {wildlifePic ? (
+              <figure className="group relative aspect-[16/7] w-full overflow-hidden bg-[var(--brand-deep)]">
+                <Image
+                  src={wildlifePic.url}
+                  alt={`${wildlife.species[0]} - ${wildlife.park}`}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 1100px"
+                  className="object-cover transition-transform duration-700 ease-[var(--motion-out)] group-hover:scale-105"
+                />
+                <figcaption>
+                  <a
+                    href={wildlifePic.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-1.5 right-2 rounded bg-black/45 px-1.5 py-0.5 text-[10px] text-white/80 backdrop-blur-sm transition-colors hover:text-white"
+                  >
+                    📷 {wildlifePic.attribution} / {wildlifePic.license} · Wikimedia
+                  </a>
+                </figcaption>
+              </figure>
+            ) : null}
+            <div className="p-5">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-soft)]">
+                Wildlife you may spot
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {wildlife.species.map((s, i) => (
+                  <span
+                    key={s}
+                    className="mark-in rounded-full border border-[var(--line)] bg-[var(--paper-deep)] px-3 py-1 text-xs font-medium text-[var(--ink)] transition-colors hover:border-[var(--brand-mint)]"
+                    style={{ animationDelay: `${i * 70}ms` }}
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] leading-relaxed text-[var(--ink-soft)]">
+                Sightings are never guaranteed - go with a registered guide or forest-department
+                safari, keep your distance, and never feed the animals.
+              </p>
+            </div>
+          </div>
+        </Reveal>
+      ) : null}
     </div>
   )
 }

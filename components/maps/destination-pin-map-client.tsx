@@ -15,11 +15,18 @@ interface Props {
   lat: number
   lng: number
   label?: string
+  /** Tailwind height classes. Defaults to the compact size used in side rails. */
+  heightClass?: string
 }
 
-export function DestinationPinMapClient({ lat, lng, label }: Props) {
+export function DestinationPinMapClient({
+  lat,
+  lng,
+  label,
+  heightClass = 'h-[240px]',
+}: Props) {
   return (
-    <div className="h-[240px] overflow-hidden rounded-2xl border border-white/15">
+    <div className={`${heightClass} overflow-hidden rounded-2xl border border-white/15`}>
       <DestinationPinMap lat={lat} lng={lng} label={label} />
     </div>
   )
