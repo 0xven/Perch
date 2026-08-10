@@ -13,6 +13,7 @@ import {
   WifiTabStream, WorkSpotsTabStream, JourneysTabStream, StaysCommunityStream, HeroWifiBadge,
 } from '@/components/destinations/community-streams'
 import { TabSkeleton, StaysCommunitySkeleton } from '@/components/destinations/tab-skeletons'
+import { DestinationTabs } from '@/components/destinations/tabs-client'
 import { DestinationReports } from '@/components/reports/destination-reports'
 
 export const revalidate = 3600
@@ -55,12 +56,14 @@ function elevationTone(e: number): string {
 
 export default async function DestinationPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ tab?: string }>
 }) {
-  const [{ slug }, { tab = 'overview' }] = await Promise.all([params, searchParams])
+  // searchParams is deliberately NOT read here. Awaiting it is a dynamic signal
+  // and it was silently discarding this route's own generateStaticParams, so
+  // every visit re-rendered the page instead of being served from the edge.
+  // The `?tab=` parameter is read in the browser instead - see DestinationTabs.
+  const { slug } = await params
 
   // Catalogue is the source of truth for the destination itself - this renders
   // immediately. The Supabase community layer streams in behind Suspense below.
@@ -144,69 +147,50 @@ export default async function DestinationPage({
         </div>
       </section>
 
-      {/* ─── Tabs ─── */}
-      <div className="sticky top-14 z-30 border-b border-[var(--line)] bg-[var(--surface)]">
-        <div className="mx-auto flex max-w-6xl gap-0 overflow-x-auto px-5">
-          {TABS.map((t) => (
-            <Link
-              key={t.id}
-              href={`/destinations/${slug}?tab=${t.id}`}
-              className={`whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-                tab === t.id
-                  ? 'border-[var(--brand)] text-[var(--brand)]'
-                  : 'border-transparent text-[var(--ink-soft)] hover:text-[var(--ink)]'
-              }`}
-            >
-              {t.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-6xl px-5 py-8">
-        {/* ─── Overview (static - renders immediately) ─── */}
-        {tab === 'overview' && (
-          <>
-            <OverviewTab dest={dest} />
-            {/* Cached read, so this stays prerendered like the rest of the tab. */}
-            <DestinationReports slug={slug} name={dest.name} />
-          </>
-        )}
-
-        {/* ─── WiFi (community - streamed) ─── */}
-        {tab === 'wifi' && (
-          <Suspense fallback={<TabSkeleton />}>
-            <WifiTabStream slug={slug} />
-          </Suspense>
-        )}
-
-        {/* ─── Work spots (community - streamed) ─── */}
-        {tab === 'work' && (
-          <Suspense fallback={<TabSkeleton />}>
-            <WorkSpotsTabStream slug={slug} />
-          </Suspense>
-        )}
-
-        {/* ─── Stays (static booking links + open data, community section streamed) ─── */}
-        {tab === 'stay' && (
-          <StaysTab
-            dest={dest}
-            slug={slug}
-            communitySlot={
-              <Suspense fallback={<StaysCommunitySkeleton />}>
-                <StaysCommunityStream slug={slug} />
-              </Suspense>
-            }
-          />
-        )}
-
-        {/* ─── Journeys (community - streamed) ─── */}
-        {tab === 'journeys' && (
-          <Suspense fallback={<TabSkeleton />}>
-            <JourneysTabStream slug={slug} destName={dest.name} />
-          </Suspense>
-        )}
-      </div>
+      {/* ─── Tabs ───────────────────────────────────────────────────────────
+          Every panel is server-rendered here and handed to a client switcher
+          that reads ?tab=. The panels are still Server Components - they are
+          rendered on the server and passed down as props, so the browser only
+          decides which one is visible. */}
+      <DestinationTabs
+        slug={slug}
+        tabs={TABS}
+        panels={{
+          overview: (
+            <>
+              <OverviewTab dest={dest} />
+              {/* Cached read, so this stays prerendered like the rest of the tab. */}
+              <DestinationReports slug={slug} name={dest.name} />
+            </>
+          ),
+          wifi: (
+            <Suspense fallback={<TabSkeleton />}>
+              <WifiTabStream slug={slug} />
+            </Suspense>
+          ),
+          work: (
+            <Suspense fallback={<TabSkeleton />}>
+              <WorkSpotsTabStream slug={slug} />
+            </Suspense>
+          ),
+          stay: (
+            <StaysTab
+              dest={dest}
+              slug={slug}
+              communitySlot={
+                <Suspense fallback={<StaysCommunitySkeleton />}>
+                  <StaysCommunityStream slug={slug} />
+                </Suspense>
+              }
+            />
+          ),
+          journeys: (
+            <Suspense fallback={<TabSkeleton />}>
+              <JourneysTabStream slug={slug} destName={dest.name} />
+            </Suspense>
+          ),
+        }}
+      />
     </div>
   )
 }

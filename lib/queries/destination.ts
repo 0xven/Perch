@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createPublicClient } from '@/lib/supabase/public-client'
 import type {
   WifiReading, WorkSpot, Accommodation, Journey, PowerReport,
 } from '@/lib/types/database'
@@ -34,7 +34,10 @@ const EMPTY: DestinationCommunityData = {
  */
 export async function getDestinationCommunityData(slug: string): Promise<DestinationCommunityData> {
   try {
-    const supabase = await createClient()
+    // Cookie-less on purpose. Everything below is public community data with no
+    // per-visitor component, and the cookie-bound client's cookies() call is a
+    // dynamic signal that stopped /destinations/[slug] prerendering at all.
+    const supabase = createPublicClient()
     const { data: dbDest, error: destErr } = await supabase
       .from('destinations')
       .select('id')
