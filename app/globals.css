@@ -42,6 +42,30 @@
   --motion-out:    cubic-bezier(0.16, 1, 0.3, 1);
   --motion-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
 
+  /* ─── Glass ─────────────────────────────────────────────────────────────────
+     backdrop-filter is the single most expensive thing on this page, and the
+     audience is on hill-station 3G. So it is a TOKEN, applied only to small,
+     non-scrolling surfaces - the header, chips, badges, overlays - and never to
+     a large scrolling region, which forces the compositor to re-blur the layer
+     on every frame. Two blur strengths, not five, so it stays consistent.
+
+     --glass-tint carries a hint of the paper's warmth rather than pure white,
+     otherwise glass over the warm background reads as a cold grey smear. */
+  --glass-tint:    255 253 250;
+  --glass-bg:      rgb(var(--glass-tint) / 0.72);
+  --glass-bg-soft: rgb(var(--glass-tint) / 0.55);
+  --glass-border:  rgb(255 255 255 / 0.65);
+  --glass-blur:    blur(14px) saturate(165%);
+  --glass-blur-sm: blur(8px)  saturate(150%);
+
+  /* On dark panels the same idea, inverted - a lifted film rather than frost. */
+  --glass-dark-bg:     rgb(12 30 23 / 0.55);
+  --glass-dark-border: rgb(255 255 255 / 0.12);
+
+  /* A brand-tinted ring for hover/active states, so lift reads as warmth
+     rather than a generic drop shadow. */
+  --ring-brand: 0 0 0 1px rgb(28 82 64 / 0.14), 0 18px 40px -18px rgb(28 82 64 / 0.35);
+
   /* ─── Type bindings ─────────────────────────────────────────────────────────
      next/font self-hosts every curated family at build time and gives each one
      its own variable (--font-instrument-serif, --font-geist, ...) on <html>;
@@ -77,13 +101,22 @@ html {
   background: var(--paper);
 }
 body {
-  /* Soft fixed washes give the paper depth; the animated aurora blobs in
-     SpatialBackground drift gently on top of these. */
+  /* A MESH GRADIENT, not a wallpaper image. Six overlapping radial stops paint
+     a rich, photographic-feeling ground for roughly nothing: it is a handful of
+     bytes of CSS, needs no network request, never blocks first paint, and scales
+     to any viewport without a 2x asset. On a hill-station 3G connection that
+     difference is the whole point - a real wallpaper would be the single
+     heaviest thing on the page.
+     background-attachment: fixed keeps it still while content scrolls, which is
+     what makes it read as depth rather than as a coloured box. */
   background-color: var(--paper);
   background-image:
-    radial-gradient(60rem 32rem at 50% -8%,  rgb(127 184 156 / 0.18), transparent 70%),
-    radial-gradient(48rem 28rem at 100% 2%,  rgb(224 169 59 / 0.10),  transparent 65%),
-    radial-gradient(52rem 40rem at 0% 18%,   rgb(154 143 208 / 0.08), transparent 70%);
+    radial-gradient(52rem 30rem at 12% -6%,  rgb(127 184 156 / 0.30), transparent 62%),
+    radial-gradient(44rem 26rem at 88% 0%,   rgb(224 169 59 / 0.20),  transparent 60%),
+    radial-gradient(60rem 44rem at 50% 12%,  rgb(28 82 64 / 0.10),    transparent 68%),
+    radial-gradient(48rem 38rem at 0% 42%,   rgb(154 143 208 / 0.16), transparent 66%),
+    radial-gradient(40rem 34rem at 100% 62%, rgb(127 184 156 / 0.16), transparent 64%),
+    radial-gradient(56rem 40rem at 30% 96%,  rgb(224 169 59 / 0.10),  transparent 70%);
   background-attachment: fixed;
   background-repeat: no-repeat;
   color: var(--ink);
@@ -181,20 +214,94 @@ p { text-wrap: pretty; }
 }
 
 /* ─── Cards & surfaces ─────────────────────────────────────────────────────── */
+/* Every card on the site is this class, so it is the highest-leverage surface
+   in the codebase - one change here re-skins destinations, stays, reports,
+   trip-finder and the admin panel at once.
+
+   The card is TRANSLUCENT rather than solid white, so the mesh gradient behind
+   it shows through faintly and the page reads as layered glass instead of
+   floating rectangles. No backdrop-filter here on purpose: cards are the most
+   numerous element on the page and blurring 90 of them at once is exactly the
+   kind of compositor work that ruins scrolling on a mid-range Android. The
+   translucency gives most of the effect for none of the cost. */
 .card {
   position: relative;
-  background: var(--surface);
+  background: linear-gradient(
+    160deg,
+    rgb(255 255 255 / 0.94) 0%,
+    rgb(255 255 255 / 0.86) 55%,
+    rgb(250 247 241 / 0.90) 100%
+  );
   border: 1px solid var(--line);
   border-radius: 1.25rem;
   box-shadow: var(--elev-sm);
-  transition: transform 0.35s var(--motion-out), box-shadow 0.35s var(--motion-out), border-color 0.35s var(--motion-out);
+  transition:
+    transform 0.4s var(--motion-out),
+    box-shadow 0.4s var(--motion-out),
+    border-color 0.4s var(--motion-out);
 }
+
+/* A one-pixel highlight along the top edge - the trick that makes a flat
+   surface look like it has a bevel catching the light. Pure gradient, no cost. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.9) 22%,
+    rgb(255 255 255 / 0.9) 78%,
+    transparent
+  );
+  pointer-events: none;
+}
+
 .card-hover:hover {
-  transform: translateY(-4px);
-  border-color: var(--brand-mint);
-  box-shadow: var(--elev-lg);
+  transform: translateY(-5px);
+  border-color: rgb(127 184 156 / 0.6);
+  box-shadow: var(--elev-lg), var(--ring-brand);
 }
 .card > :first-child { border-top-left-radius: inherit; border-top-right-radius: inherit; }
+
+/* ─── Glass ───────────────────────────────────────────────────────────────────
+   For small, fixed surfaces only - the sticky header, chips, floating badges.
+   Guarded on @supports so browsers without backdrop-filter get an opaque
+   fallback rather than unreadable transparent text. */
+.glass {
+  background: var(--glass-bg-soft);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--elev-sm);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass {
+    background: var(--glass-bg-soft);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+  .glass-sm {
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    backdrop-filter: var(--glass-blur-sm);
+  }
+}
+/* Without backdrop-filter, fall back to something solid enough to read on. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: rgb(var(--glass-tint) / 0.97); }
+}
+
+/* The dark counterpart, for glass sitting on hero panels and the dark homepage. */
+.glass-dark {
+  background: var(--glass-dark-bg);
+  border: 1px solid var(--glass-dark-border);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass-dark {
+    -webkit-backdrop-filter: var(--glass-blur-sm);
+    backdrop-filter: var(--glass-blur-sm);
+  }
+}
 
 /* Luminous gradient text for hero accents (sits on the dark pine hero). */
 .text-grad {
@@ -266,20 +373,42 @@ p { text-wrap: pretty; }
 
 /* ─── Buttons ──────────────────────────────────────────────────────────────── */
 .btn-primary {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
   border-radius: 0.85rem;
-  background: var(--brand);
+  /* A gradient rather than a flat fill, so the button has a light source that
+     agrees with the card bevels. */
+  background: linear-gradient(150deg, #23664F 0%, var(--brand) 55%, var(--brand-deep) 100%);
   color: var(--paper);
   padding: 0.7rem 1.3rem;
   font-size: 0.875rem;
   font-weight: 600;
   letter-spacing: -0.005em;
-  box-shadow: var(--elev-sm);
-  transition: background 0.2s var(--motion-out), transform 0.22s var(--motion-spring), box-shadow 0.22s var(--motion-out);
+  box-shadow: var(--elev-sm), inset 0 1px 0 rgb(255 255 255 / 0.14);
+  transition:
+    transform 0.22s var(--motion-spring),
+    box-shadow 0.22s var(--motion-out),
+    filter 0.2s var(--motion-out);
 }
-.btn-primary:hover { background: var(--brand-deep); transform: translateY(-2px); box-shadow: var(--elev-md); }
+/* Light sweeps across on hover. One pseudo-element, transform-only, so it
+   animates on the compositor and costs nothing on a mid-range phone. */
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.22) 50%, transparent 60%);
+  transform: translateX(-130%);
+  pointer-events: none;
+}
+.btn-primary:hover::after { animation: sheenSweep 0.8s var(--motion-out); }
+.btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow: var(--elev-md), var(--ring-brand), inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
 .btn-primary:active { transform: translateY(0); box-shadow: var(--elev-xs); transition-duration: 0.08s; }
 
 .btn-ghost {
@@ -443,6 +572,7 @@ p { text-wrap: pretty; }
   .reveal { opacity: 1; transform: none; transition: none; }
   .btn-primary, .btn-ghost, .card { transition: none; }
   .btn-primary:hover, .btn-ghost:hover, .card-hover:hover, .tilt { transform: none; }
+  .btn-primary:hover::after { animation: none; }
   .marquee-track { animation: none; }
   .dial-needle, .dial-ring, .pulse-dot, .dash-move, .draw-loop, .bar-wave, .cloud-drift {
     animation: none;

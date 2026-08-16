@@ -196,7 +196,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           ) : null}
 
           <SpatialBackground />
-          <header className="sticky top-0 z-50 border-b border-[var(--line)]/80 bg-[var(--paper)]/75 shadow-[0_1px_0_rgb(30_24_18/0.03),0_8px_24px_-16px_rgb(30_24_18/0.18)] backdrop-blur-xl backdrop-saturate-150">
+          {/* The one place backdrop blur is unambiguously worth it: a small,
+              fixed-height, non-scrolling surface that sits over moving content.
+              The .glass class carries the blur plus an opaque @supports
+              fallback, so browsers without backdrop-filter still get readable
+              nav rather than text over photographs. */}
+          <header className="glass sticky top-0 z-50 border-x-0 border-t-0 border-b border-[var(--line)]/70 shadow-[0_1px_0_rgb(255_255_255/0.6),0_10px_30px_-18px_rgb(30_24_18/0.28)]">
             <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
               <Link href="/" className="group flex items-center gap-2 rounded-lg">
                 <PerchMark className="h-7 w-7 transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.5,1)] group-hover:-translate-y-0.5" />
