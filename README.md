@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Perch
 
-## Getting Started
+A community-fed platform for remote-work travel in South India. Perch combines two research tasks travellers usually repeat from scratch — "can I work from here?" and "how do I get there?" — into one place: destinations with WiFi/work-spot data, and the journeys that connect them.
 
-First, run the development server:
+[![CI](https://github.com/0xven/Perch/actions/workflows/ci.yml/badge.svg)](https://github.com/0xven/Perch/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/0xven/Perch/actions/workflows/codeql.yml/badge.svg)](https://github.com/0xven/Perch/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+
+## What it is
+
+- **Destinations** — hill stations, forests, coastal towns, and gateway cities, each with WiFi/work-spot notes and accommodation info.
+- **Journeys** — transport-agnostic route data (car, bike, bus, train) between destinations, including road conditions and ghat warnings.
+- **Contribute** — a single low-friction form: "I went from X to Y by car/bike/bus/train" populates both a destination and a journey record at once.
+
+## Stack
+
+- [Next.js](https://nextjs.org) (App Router) + React 19 + TypeScript
+- [Supabase](https://supabase.com) (PostgreSQL + PostGIS) for data and auth
+- MapLibre GL for maps
+- Deployed on Vercel
+
+## Getting started
 
 ```bash
+npm install
+cp .env.local.example .env.local   # fill in your own Supabase project details
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The app degrades gracefully without Supabase credentials — public pages fall back to empty/placeholder state rather than failing to build (see `lib/queries/*.ts`), which is also how CI builds without real secrets.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint |
 
-To learn more about Next.js, take a look at the following resources:
+## Contributing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding conventions, and how to submit a PR. Please also read our [Code of Conduct](CODE_OF_CONDUCT.md).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Security
 
-## Deploy on Vercel
+Found a vulnerability? Please see [SECURITY.md](SECURITY.md) for how to report it responsibly rather than opening a public issue.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT — see [LICENSE](LICENSE).

@@ -231,7 +231,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
           <footer className="mt-20 border-t border-[var(--line)] bg-[var(--surface)]">
             <div className="mx-auto max-w-6xl px-5 py-14">
-              <div className="grid gap-10 sm:grid-cols-[1.4fr_1fr_1fr]">
+              <div className="grid gap-10 sm:grid-cols-[1.4fr_1fr_1fr_1fr]">
                 <div>
                   <Link href="/" className="flex items-center gap-2">
                     <PerchMark className="h-7 w-7" />
@@ -259,6 +259,35 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
                     {settings.about_blurb?.trim() || SITE_DEFAULTS.aboutBlurb}
                   </p>
+                </div>
+                <div className="space-y-2.5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-soft)]">Open source</p>
+                  <div className="space-y-1.5 text-sm text-[var(--ink-soft)]">
+                    <a
+                      href="https://github.com/0xven/Perch"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block transition-colors hover:text-[var(--ink)]"
+                    >
+                      View on GitHub
+                    </a>
+                    <a
+                      href="https://github.com/0xven/Perch/blob/main/CONTRIBUTING.md"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block transition-colors hover:text-[var(--ink)]"
+                    >
+                      Contributing guide
+                    </a>
+                    <a
+                      href="https://github.com/0xven/Perch/blob/main/LICENSE"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block transition-colors hover:text-[var(--ink)]"
+                    >
+                      MIT License
+                    </a>
+                  </div>
                 </div>
               </div>
               <div className="mt-12 border-t border-[var(--line)] pt-6 text-xs text-[var(--ink-soft)]">

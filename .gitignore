@@ -44,3 +44,5 @@ next-env.d.ts
 # local agent tooling and worktrees
 .claude/
 memory/
+AGENTS.md
+CLAUDE.md
