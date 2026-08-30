@@ -7,6 +7,7 @@ import { VisitorProvider } from '@/components/home/visitor-context'
 import { HeroBadge } from '@/components/home/hero-badge'
 import { YourBaseline } from '@/components/home/your-baseline'
 import { FromHere, type FromHereDestination } from '@/components/home/from-here'
+import { DisasterBanner } from '@/components/home/disaster-banner'
 import { EV_NETWORKS } from '@/lib/data/ev-networks'
 import { DESTINATIONS, getDestination } from '@/lib/data/destinations'
 import { destinationImage } from '@/lib/data/destination-images'
@@ -17,6 +18,7 @@ import { WILDLIFE } from '@/lib/data/wildlife'
 import { getWifiBySlug } from '@/lib/queries/home'
 import { getWeatherBatch } from '@/lib/queries/weather'
 import { getSiteSettings } from '@/lib/queries/site-settings'
+import { getDisasterAlerts } from '@/lib/queries/alerts'
 import { heroBadgeDefault, SITE_DEFAULTS } from '@/lib/data/site-defaults'
 
 export const revalidate = 3600
@@ -67,10 +69,11 @@ export default async function HomePage() {
   // Live temperatures for the featured set arrive in ONE batched Open-Meteo
   // request - they are what the "13° cooler than you" deltas are measured
   // against once a visitor shares where they are.
-  const [wifiBySlug, weatherBySlug, settings] = await Promise.all([
+  const [wifiBySlug, weatherBySlug, settings, alerts] = await Promise.all([
     getWifiBySlug(),
     getWeatherBatch(featuredList.map((d) => ({ slug: d.slug, lat: d.lat, lng: d.lng }))),
     getSiteSettings(),
+    getDisasterAlerts(),
   ])
 
   const wifiEntries = featuredList
@@ -135,6 +138,8 @@ export default async function HomePage() {
     <div
       className={`${newsreader.variable} ${schibstedGrotesk.variable} ${ibmPlexMono.variable} home-dark`}
     >
+      <DisasterBanner alerts={alerts} />
+
       {/* ─── HERO ───────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <svg

@@ -252,6 +252,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <Link href="/charging"     className="block transition-colors hover:text-[var(--ink)]">EV charging map</Link>
                     <Link href="/kashmir"      className="block transition-colors hover:text-[var(--ink)]">Kashmir Circuit &apos;26</Link>
                     <Link href="/contribute"   className="block transition-colors hover:text-[var(--ink)]">Write a trip report</Link>
+                    <Link href="/alerts"       className="block transition-colors hover:text-[var(--ink)]">Alerts &amp; cautions</Link>
                   </div>
                 </div>
                 <div className="space-y-2.5">
