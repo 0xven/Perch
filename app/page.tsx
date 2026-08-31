@@ -8,6 +8,7 @@ import { HeroBadge } from '@/components/home/hero-badge'
 import { YourBaseline } from '@/components/home/your-baseline'
 import { FromHere, type FromHereDestination } from '@/components/home/from-here'
 import { DisasterBanner } from '@/components/home/disaster-banner'
+import { Scoreboard, type Stat } from '@/components/home/scoreboard'
 import { EV_NETWORKS } from '@/lib/data/ev-networks'
 import { DESTINATIONS, getDestination } from '@/lib/data/destinations'
 import { destinationImage } from '@/lib/data/destination-images'
@@ -126,6 +127,18 @@ export default async function HomePage() {
     lng: c.lng,
   }))
 
+  // Every figure below is derived from the real catalogue at build time -
+  // no rounded-up marketing numbers.
+  const highestM = Math.max(...DESTINATIONS.map((d) => d.elevationM))
+  const stateCount = new Set(DESTINATIONS.map((d) => d.state)).size
+  const scoreboardStats: Stat[] = [
+    { value: destCount, label: 'Hill stations', sub: 'Western Ghats to the Himalaya' },
+    { value: STAY_TOTALS.total, suffix: '+', label: 'Stays mapped', sub: 'Filtered by WiFi & workspace' },
+    { value: highestM, suffix: 'm', label: 'Highest logged', sub: 'Altitude, oxygen, acclimatisation', accent: true },
+    { value: stateCount, label: 'States & UTs', sub: 'Tamil Nadu to Ladakh' },
+    { value: EV_NETWORKS.length, label: 'EV networks', sub: 'Charging across the circuit' },
+  ]
+
   const connectivityBars = Array.from({ length: 14 }, (_, i) => ({
     h: `${28 + ((i * 37) % 48)}px`,
     c: i % 4 === 0 ? '#E0A93B' : '#7FB89C',
@@ -204,6 +217,14 @@ export default async function HomePage() {
       </section>
 
       <div className="mx-auto max-w-6xl px-5 py-[76px] space-y-[88px]">
+        {/* ─── SCOREBOARD ───────────────────────────────────────────────────
+            The proof, immediately after the promise in the hero. Counts up on
+            first scroll into view; every figure is computed from the real
+            catalogue above, so it cannot drift from what the site holds. */}
+        <section className="!mt-0">
+          <Scoreboard stats={scoreboardStats} />
+        </section>
+
         {/* ─── YOUR BASELINE ────────────────────────────────────────────────
             Sits directly under the hero because it is the offer that makes the
             rest of the page personal - and it degrades to a plain invitation
