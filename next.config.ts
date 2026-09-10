@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+import process from 'node:process'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -69,7 +70,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: supabaseImagePattern,
   },
-  async headers() {
+  headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
   },
 }

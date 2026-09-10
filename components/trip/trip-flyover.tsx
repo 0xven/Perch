@@ -183,7 +183,7 @@ export function TripFlyover() {
     const bike = bikeRef.current
     if (!map || !bike || riding) { if (riding) stopRide(); return }
 
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reduced = globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (reduced) {
       // No ride - just show the finished trail and the bike at the end.
       setTrail(TOTAL)

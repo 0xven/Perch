@@ -1,5 +1,6 @@
 // Generates supabase/migrations/003 from the canonical catalogue so the DB stays
 // in sync with lib/data/destinations.ts. Run: npx tsx scripts/gen-dest-sql.ts
+import process from 'node:process'
 import { DESTINATIONS } from '../lib/data/destinations'
 
 const esc = (s: string) => s.replace(/'/g, "''")

@@ -1,3 +1,5 @@
+import process from 'node:process'
+
 /**
  * Canonical site configuration. Used by metadata, sitemap, robots and OG tags.
  *

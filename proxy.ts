@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import process from 'node:process'
 
 /**
  * Proxy - this is Next 16's `middleware.ts`. The middleware file convention is

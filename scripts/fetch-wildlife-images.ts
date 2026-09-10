@@ -21,6 +21,8 @@
 
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
+import process from 'node:process'
+import { Buffer } from 'node:buffer'
 import sharp from 'sharp'
 import { WILDLIFE } from '../lib/data/wildlife'
 

@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import process from 'node:process'
 
 /**
  * Cookie-less Supabase client for PUBLIC reads.

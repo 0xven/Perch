@@ -267,7 +267,7 @@ export function TripReportForm({ prefillSlug }: { prefillSlug?: string }) {
         })),
         media: photos.map((p) => ({ url: p.url, caption: p.caption })),
       })
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (e) {
       // The draft is deliberately NOT cleared here: whatever went wrong, the
       // traveller's twenty minutes of typing survives a reload.
